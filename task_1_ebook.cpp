@@ -10,10 +10,10 @@ class Reader {
 public:
     void Read(const int id, const int page) {
         if(readers_to_pages_.size() < id + 1) {
-            readers_to_pages_.resize(id + 1);    
+            readers_to_pages_.resize(2*(id + 1));    
         }
         if(pages_to_readers_.size() < page + 1) {
-            pages_to_readers_.resize(page + 1);
+            pages_to_readers_.resize(2*(page + 1));
         }
     int old_page = readers_to_pages_[id];
     readers_to_pages_[id] = page;
