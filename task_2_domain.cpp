@@ -15,24 +15,25 @@ public:
     friend class DomainChecker;
 
     Domain(const string& domain_name)
-    :  name_(domain_name)
     {
         reverse_name_ = '.' + domain_name;
         reverse(reverse_name_.begin(), reverse_name_.end());
     }
 
     bool operator==(const Domain& other) const {
-        return name_ == other.name_;
+        return reverse_name_ == other.reverse_name_;
+    }
+
+    bool operator<(const Domain& other) const {
+        return lexicographical_compare(this->reverse_name_.begin(), this->reverse_name_.end(), other.reverse_name_.begin(), other.reverse_name_.end());
     }
 
     bool IsSubdomain(const Domain& domain) const {
-        return (domain.reverse_name_.find(reverse_name_) == 0);
+        return (reverse_name_.find(domain.reverse_name_) == 0);
     }
 
 private: 
-    string name_;
     string reverse_name_;
-
 };
 
 class DomainChecker {
@@ -41,14 +42,9 @@ public:
     template <typename InputIt>
     DomainChecker(InputIt begin, InputIt end) {
        
-        InputIt it = begin;
-        while(it < end) {
-            forbidden_domains_.push_back(*it++);
-        }
+        forbidden_domains_ = {begin, end};
 
-        sort(forbidden_domains_.begin(), forbidden_domains_.end(), [](const Domain& lhs, const Domain& rhs){
-            return lexicographical_compare(lhs.reverse_name_.begin(), lhs.reverse_name_.end(), rhs.reverse_name_.begin(), rhs.reverse_name_.end());
-        });
+        sort(forbidden_domains_.begin(), forbidden_domains_.end());
         
         auto u_it = unique(forbidden_domains_.begin(), forbidden_domains_.end(), [](const auto& lhs, const auto& rhs){return lhs.IsSubdomain(rhs) || rhs.IsSubdomain(lhs);});
         
@@ -56,13 +52,11 @@ public:
     }
 
     bool IsForbidden(const Domain& domain) {
-        auto it = upper_bound(forbidden_domains_.begin(), forbidden_domains_.end(), domain, [](const Domain& lhs, const Domain& rhs){
-            return lexicographical_compare(lhs.reverse_name_.begin(), lhs.reverse_name_.end(), rhs.reverse_name_.begin(), rhs.reverse_name_.end());
-        });
+        auto it = upper_bound(forbidden_domains_.begin(), forbidden_domains_.end(), domain);
         if(it == forbidden_domains_.begin()) {
             return false;
         } else {
-            return (it-1)->IsSubdomain(domain);
+            return domain.IsSubdomain(*(it-1));
         }
            
     }
@@ -145,9 +139,9 @@ void AssertImpl(bool value, const string& expr_str, const string& file, const st
 #define ASSERT_HINT(expr, hint) AssertImpl((expr), #expr, __FILE__, __FUNCTION__, __LINE__, (hint))
 
 void TestCheckSubdomain(){
-    Domain dom1("com"s);
-    ASSERT(dom1.IsSubdomain(Domain{"a.com"s}));
-    ASSERT(!dom1.IsSubdomain(Domain{"compot.a"}));
+    Domain dom1("compot.a"s);
+    ASSERT(dom1.IsSubdomain(Domain{"a"s}));
+    ASSERT(!dom1.IsSubdomain(Domain{"com"}));
     ASSERT(!dom1.IsSubdomain(Domain{""}));
     ASSERT(!dom1.IsSubdomain(Domain{" "}));
 }
